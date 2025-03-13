@@ -1,7 +1,7 @@
 const jwt = require("jsonwebtoken");
-const JWT_SECRET = process.env.JWT_SECRET; // Change this to a secure secret in a real application
+const JWT_SECRET = process.env.JWT_SECRET;
 
-const auth = (req, res, next) => {
+const auth = (allowedRoles = []) => (req, res, next) => {
   const authHeader = req.header("Authorization");
 
   if (!authHeader) {
@@ -23,8 +23,18 @@ const auth = (req, res, next) => {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     req.user = decoded;
+
+    // Nếu không yêu cầu role cụ thể (allowedRoles = []) -> Cho phép tất cả
+    if (allowedRoles.length && !allowedRoles.includes(decoded.role)) {
+      return next({
+        status: 403,
+        message: "Forbidden: You do not have permission to access this resource",
+      });
+    }
+
     next();
   } catch (error) {
+    console.error(error);
     return next({
       status: 401,
       message: "Invalid token",

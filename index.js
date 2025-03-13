@@ -1,18 +1,23 @@
 const express = require('express');
-const app = express();
+const http = require("http");
 const cors = require('cors');
 const swagger = require('./utils/swagger.js');
+const { initSocket } = require("./sockets/socket"); // Import file socket.js
 
-//ENV
+// ENV
 require('dotenv').config();
 
-//DATABASE
+// DATABASE
 require('./dbs/mongo.db.js');
 
-// swagger
+// Khởi tạo Express
+const app = express();
+const server = http.createServer(app); // 🔥 Dùng http để tạo server
+
+// Tích hợp Swagger
 swagger(app);
 
-//CORS
+// CORS
 var corsOptionsDelegate = function (req, callback) {
   var corsOptions = { origin: true };
   callback(null, corsOptions);
@@ -22,10 +27,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors(corsOptionsDelegate));
 
-//routes
+// Routes
 app.use(require("./routes/index"));
 
-//error handler
+// Khởi động WebSocket
+initSocket(server);
+
+// Error Handler
 app.use((err, req, res, next) => {
   const error = err.message ? err.message : err;
   const status = err.status ? err.status : 500;
@@ -38,4 +46,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(process.env.PORT, () => console.log(`Tarot server is listening on port ${process.env.PORT}`));
+// Chạy server với WebSocket
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, () => console.log(`🚀 Server is running on port ${PORT}`));

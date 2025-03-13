@@ -1,5 +1,5 @@
 const express = require("express");
-const { loginByOtp, register } = require("../../controllers/user.controller");
+const { loginByOtp, register, loginFacebook } = require("../../controllers/user.controller");
 const router = express.Router();
 
 /**
@@ -73,5 +73,31 @@ router.post("/login-by-otp", loginByOtp);
  *         description: Server error
  */
 router.post("/register", register);
+
+/**
+ * @swagger
+ * /api/v1/auth/login-by-facebook:
+ *   post:
+ *     summary: Login with Facebook
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               accessToken:
+ *                 type: string
+ *                 description: Facebook access token received after login
+ *     responses:
+ *       200:
+ *         description: Successfully login with Facebook
+ *       400:
+ *         description: Invalid facebook id
+ *       500:
+ *         description: Server error
+ */
+router.post("/login-by-facebook", loginFacebook);
 
 module.exports = router;
