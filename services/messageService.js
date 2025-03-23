@@ -1,5 +1,6 @@
 const Chat = require("../models/chat/chat.model");
 const Message = require("../models/message/message.model");
+const GeminiService = require("../services/geminiService");
 
 class MessageService {
   static async getMessages(chatID, page = 1, limit = 10) {
@@ -60,14 +61,14 @@ class MessageService {
 
   static async getAIResponseAndSave(chatID, userMessage) {
     try {
-      // 🔥 Gọi API AI để lấy phản hồi
-      const aiResponse = await new Promise((resolve) => {
-        setTimeout(() => {
-          resolve("Tin nhắn tự động vào lúc " + new Date().toLocaleString());
-        }, 5000); // 5 giây
-      });
-
-      return await MessageService.createMessage(chatID, null, "ai", aiResponse, false);
+      const chatHistory = await this.getMessages(chatID);
+      let aiResponse = "";
+      if (chatHistory?.data.messages.length === 1) 
+        aiResponse = await GeminiService.interpretTarot(chatHistory?.data.topic?.name, userMessage, chatHistory?.data.cards);
+      else {
+        aiResponse = await GeminiService.getFollowUpResponse(chatHistory?.data, userMessage);
+      }
+      return this.createMessage(chatID, null, "ai", aiResponse);
     } catch (error) {
       console.error("❌ Error getting AI response:", error);
       return null;

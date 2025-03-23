@@ -17,7 +17,6 @@ const removeUserSocket = (socketID, userSockets) => {
 
 const handleSendMessage = async (io, socket, userID, chatID, message) => {
   try {
-    // ✅ Gọi service để lưu tin nhắn user
     if (!userID) return socket.emit("errorMessage", {
       code: 400,
       message: "User not found"
@@ -32,25 +31,23 @@ const handleSendMessage = async (io, socket, userID, chatID, message) => {
     })
 
     const newMessage = await MessageService.createMessage(chatID, userID, "user", message);
-
-    // ✅ Gửi tin nhắn user lên UI
     io.to(socket.id).emit("newMessage", newMessage);
 
-    // Tin nhắn loading của AI
-    io.to(socket.id).emit("newMessage", {
+    const loadingMessage = {
       _id: "loading",
       chat: chatID,
-      sender: null,
       senderType: "ai",
       message: "AI đang trả lời...",
       createdAt: new Date().toISOString(),
-    });
+    };
+    io.to(socket.id).emit("newMessage", loadingMessage);
 
-    // ✅ Gọi API AI và lưu tin nhắn AI
     const aiMessage = await MessageService.getAIResponseAndSave(chatID, message);
 
-    // ✅ Gửi tin nhắn AI đến UI
-    io.to(socket.id).emit("newMessage", aiMessage);
+    io.to(socket.id).emit("replaceMessage", {
+      oldId: "loading",
+      newMessage: aiMessage,
+    });
   } catch (error) {
     console.error("❌ Error sending message:", error);
   }

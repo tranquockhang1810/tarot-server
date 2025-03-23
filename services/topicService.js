@@ -14,8 +14,18 @@ class TopicService {
     try {
       const topics = await Topic
       .find()
-      .select("_id name code image");
+      .select("_id name code image price");
       return topics;
+    } catch (error) {
+      return null
+    }
+  }
+
+  static async addTopic(data) {
+    try {
+      const newTopic = new Topic(data);
+      await newTopic.save();
+      return newTopic;
     } catch (error) {
       return null
     }

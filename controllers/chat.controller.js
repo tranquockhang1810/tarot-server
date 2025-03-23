@@ -1,22 +1,31 @@
 const ChatService = require("../services/chatService");
 const TopicService = require("../services/topicService");
 const MessageService = require("../services/messageService");
+const GeminiService = require("../services/geminiService")
 
 const createChat = async (req, res, next) => {
   try {
-    const { topic, question, cards } = req.body;
+    const { topic, question } = req.body;
     const user = req.user.id;
 
     if (!user) return next({ status: 400, message: "User ID is missing from token" });
     if (!topic) return next({ status: 400, message: "Missing topic" });
     if (!question) return next({ status: 400, message: "Missing question" });
-    if (!cards || cards?.length !== 3) return next({ status: 400, message: "Must have exactly 3 cards" });
 
     //Check valid topic
     const existTopic = await TopicService.findTopic(topic);
     if (!existTopic) return next({ status: 400, message: "Topic not found" });
 
-    const chat = await ChatService.createChat({ user, topic, question, cards });
+    //Check with AI
+    const isValidQuestion = await GeminiService.checkTopicRelevance(existTopic.name, question)
+    if (!isValidQuestion) return next({ status: 400, message: "Question is not suitable with the selected topic"})
+ 
+    const chat = await ChatService.createChat({ 
+      user, 
+      topic, 
+      question,
+      cards: [] 
+    });
     return res.status(200).json({
       code: 200,
       message: "Chat created successfully",
@@ -130,8 +139,64 @@ const getChat = async (req, res, next) => {
   }
 }
 
+const updateOldChats = async () => {
+  try {
+    console.log("🔄 Running update for old chats...");
+
+    const result = await ChatService.updateOldChats({ status: false });
+
+    if (result) {
+      console.log(`✅ Updated ${result.modifiedCount} chats older than 3 days.`);
+    } else {
+      console.log("❌ No chats were updated.");
+    }
+  } catch (error) {
+    console.error("❌ Error updating old chats:", error);
+  }
+};
+
+const deleteChat = async (req, res, next) => {
+  try {
+    const { id } = req.query;
+    if (!id) return next({ status: 400, message: "Missing chat ID" });
+
+    const result = await ChatService.deleteChat(id);
+
+    if (!result) return next({ status: 404, message: "Chat not found" });
+
+    return res.status(200).json({
+      code: 200,
+      message: "Chat deleted successfully",
+    });
+  } catch (error) {
+    next({ status: 500, message: error?.message });
+  }
+}
+
+const updateCardsToChat = async (req, res, next) => {
+  try {
+    const { id, cards } = req.body;
+    if (!id) return next({ status: 400, message: "Missing chat ID" });
+    if (!cards || !Array.isArray(cards) || cards.length < 3) return next({ status: 400, message: "Missing cards" });
+
+    const result = await ChatService.updateCards(id, cards);
+
+    if (!result) return next({ status: 404, message: "Chat not found" });
+
+    return res.status(200).json({
+      code: 200,
+      message: "Cards updated successfully",
+    });
+  } catch (error) {
+    next({ status: 500, message: error?.message });
+  }
+}
+
 module.exports = {
   createChat,
   getChats,
-  getChat
+  getChat,
+  updateOldChats,
+  deleteChat,
+  updateCardsToChat
 };

@@ -4,5 +4,6 @@ const router = express.Router();
 router.use("/api/v1/auth", require("./auth/index"));
 router.use("/api/v1/chat", require("./chat/index"));
 router.use("/api/v1/topic", require("./topic/index"));
+router.use("/api/v1/card", require("./card/index"));
 
 module.exports = router;

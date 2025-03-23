@@ -11,6 +11,10 @@ const topicSchema = new Schema({
   },
   image: {
     type: String
+  },
+  price: {
+    type: Number,
+    default: 0
   }
 }, { timestamps: true });
 

@@ -1,6 +1,7 @@
 const express = require('express');
 const http = require("http");
 const cors = require('cors');
+const path = require("path");
 const swagger = require('./utils/swagger.js');
 const { initSocket } = require("./sockets/socket"); // Import file socket.js
 
@@ -29,9 +30,19 @@ app.use(cors(corsOptionsDelegate));
 
 // Routes
 app.use(require("./routes/index"));
+app.use("/card", express.static(path.join(__dirname, "card")));
+
+// Cron job
+require("./cron/chatCron");
 
 // Khởi động WebSocket
 initSocket(server);
+
+// const { updateOldChats } = require("./controllers/chat.controller");
+// updateOldChats().then(() => {
+//   console.log("✅ Manual chat update completed.");
+//   process.exit(); // Thoát process sau khi chạy xong
+// });
 
 // Error Handler
 app.use((err, req, res, next) => {

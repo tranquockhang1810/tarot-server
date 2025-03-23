@@ -17,8 +17,7 @@ const chatSchema = new Schema({
     required: true
   },
   cards: [{
-    type: String,
-    required: true
+    type: String
   }],
   status: {
     type: Boolean,

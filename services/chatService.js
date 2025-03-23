@@ -23,20 +23,19 @@ class ChatService {
       }
 
       if (param.topic && param.topic.length > 0) {
-        filter.topic = { $in: param.topic };
+        filter.topic = { $in: param.topic.map((t) => mongoose.Types.ObjectId.createFromHexString(t)) };
       }
 
       if (param.fromDate || param.toDate) {
         filter.createdAt = {};
         if (param.fromDate) filter.createdAt.$gte = new Date(param.fromDate);
-        if (param.toDate) filter.createdAt.$lte = new Date(param.toDate);
+        if (param.toDate) filter.createdAt.$lte = new Date(new Date(param.toDate).setHours(23, 59, 59, 999));
       }
 
       const page = param.page ? parseInt(param.page, 10) : 1;
       const limit = param.limit ? parseInt(param.limit, 10) : 10;
       const skip = (page - 1) * limit;
 
-      // 🔥 Dùng aggregate để lấy danh sách chat kèm latestMessage và sắp xếp theo createdAt của latestMessage
       const chats = await Chat.aggregate([
         { $match: filter },
         {
@@ -69,11 +68,11 @@ class ChatService {
             as: "topic",
           },
         },
-        { 
-          $unwind: { 
-            path: "$topic", 
+        {
+          $unwind: {
+            path: "$topic",
             preserveNullAndEmptyArrays: true
-          } 
+          }
         },
         {
           $project: {
@@ -95,14 +94,12 @@ class ChatService {
         },
       ]);
 
-      console.log("filter:", filter);
-      
       // 🔥 Lấy tổng số chat
       const totalChatsResult = await Chat.aggregate([
         { $match: filter },
         { $count: "total" },
       ]);
-      
+
       const totalChats = totalChatsResult.length > 0 ? totalChatsResult[0].total : 0;
 
       return {
@@ -118,13 +115,53 @@ class ChatService {
       console.error("Error fetching chats:", error);
       return null;
     }
-  }  
+  }
 
   static async createChat(data) {
     try {
       const chat = await Chat.create(data);
       return chat.populate("topic", "name image");
     } catch (error) {
+      return null;
+    }
+  }
+
+  static async updateOldChats(updateData) {
+    try {
+      const threeDaysAgo = new Date();
+      threeDaysAgo.setHours(0, 0, 0, 0);
+      threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+      console.log("threeDaysAgo", threeDaysAgo);
+
+      const result = await Chat.updateMany(
+        { createdAt: { $lt: threeDaysAgo } },
+        { $set: updateData }
+      );
+
+      return result;
+    } catch (error) {
+      console.error("Error updating old chats:", error);
+      return null;
+    }
+  }
+
+  static async deleteChat(id) {
+    try {
+      const result = await Chat.findByIdAndDelete(id);
+      return result;
+    } catch (error) {
+      console.error("Error deleting chat:", error);
+      return null;
+    }
+  }
+
+  static async updateCards(chatId, cards) {
+    try {
+      const result = await Chat.findByIdAndUpdate(chatId, { cards }, { new: true });
+      return result;
+    } catch (error) {
+      console.error("Error updating cards:", error);
       return null;
     }
   }
