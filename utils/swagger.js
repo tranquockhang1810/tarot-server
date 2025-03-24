@@ -10,10 +10,10 @@ const swaggerDefinition = {
     description: 'APIs document of a tarot app',
   },
   servers: [
-    // {
-    //   url: 'https://chat-app-server-sut5.onrender.com',
-    //   description: 'Production server',
-    // },
+    {
+      url: 'https://tarot-server-t979.onrender.com',
+      description: 'Production server',
+    },
     {
       url: 'http://localhost:8000',
       description: 'Development server',
