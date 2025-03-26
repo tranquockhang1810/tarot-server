@@ -1,5 +1,6 @@
 const Chat = require("../models/chat/chat.model");
 const mongoose = require("mongoose");
+const moment = require("moment-timezone");
 
 class ChatService {
   static async findChatByID(id) {
@@ -128,20 +129,18 @@ class ChatService {
 
   static async updateOldChats(updateData) {
     try {
-      const threeDaysAgo = new Date();
-      threeDaysAgo.setHours(0, 0, 0, 0);
-      threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+      const threeDaysAgo = moment().tz("Asia/Ho_Chi_Minh").subtract(3, "days").format("YYYY-MM-DD");
 
-      console.log("threeDaysAgo", threeDaysAgo);
+      console.log(`🕒 Xóa chat trước ngày: ${threeDaysAgo}`);
 
       const result = await Chat.updateMany(
-        { createdAt: { $lt: threeDaysAgo } },
+        { createdAt: { $lt: new Date(`${threeDaysAgo}T00:00:00.000Z`) }, status: true },
         { $set: updateData }
       );
 
       return result;
     } catch (error) {
-      console.error("Error updating old chats:", error);
+      console.error("❌ Error updating old chats:", error);
       return null;
     }
   }

@@ -66,6 +66,61 @@ class GeminiService {
       return "Xin lỗi, tôi không thể trả lời lúc này.";
     }
   }
+
+  static async generateHoroscope(birthDate, gender, date) {
+    const prompt = `
+      Bạn là một chuyên gia chiêm tinh. Hãy tạo thông điệp hằng ngày cho người có ngày sinh ${birthDate} và 
+      giới tính ${gender === "male" ? "nam" : "nữ"} vào ngày ${date}.
+
+      1. Xác định cung hoàng đạo từ ngày sinh.
+      2. Đưa ra dự đoán cho hôm nay về:
+         - Tình cảm
+         - Sự nghiệp & Học tập
+         - Tài chính
+         - Sức khỏe
+      3. Chọn 1 con số may mắn từ 1 - 99.
+      4. Chọn 1 màu sắc may mắn.
+
+      Trả lời dưới dạng JSON:
+      {
+        "zodiac": "[Tên cung hoàng đạo]",
+        "icon" : [Tên cung hoàng đạo quốc tế theo format, ví dụ zodiac-aries]
+        "summary": "[Dự đoán tổng quan]",
+        "love": "[Dự đoán tình cảm]",
+        "career": "[Dự đoán sự nghiệp & học tập]",
+        "finance": "[Dự đoán tài chính]",
+        "health": "[Dự đoán sức khỏe]",
+        "luckyNumber": [Số may mắn],
+        "luckyColor": {
+          "name": "[Tên màu sắc]",
+          "code": "[Mã màu HEX]"
+        }
+      }
+    `;
+
+    try {
+      const result = await model.generateContent(prompt);
+      let response = result.response.text().trim();
+      response = response.replace(/```json/g, "").replace(/```/g, "").trim();
+      return JSON.parse(response);
+    } catch (error) {
+      console.error("❌ Lỗi khi gọi Gemini API:", error);
+      throw new Error("Không thể tạo horoscope.");
+    }
+  }
+
+  static async translateText(text, sourceLang, targetLang) {
+    const prompt = `Dịch đoạn văn sau từ ${sourceLang} sang ${targetLang}, giữ nguyên cấu trúc JSON:\n\n${text}`;
+    try {
+      const result = await model.generateContent(prompt);
+      let response = result.response.text().trim();
+      response = response.replace(/```json/g, "").replace(/```/g, "").trim();
+      return JSON.parse(response);
+    } catch (error) {
+      console.error("❌ Lỗi khi dịch với Gemini:", error);
+      throw new Error("Không thể dịch nội dung.");
+    }
+  }
 }
 
 module.exports = GeminiService;

@@ -37,7 +37,6 @@ class UserService {
     }
   }
 
-
   static async findUserByFacebookId(id) {
     try {
       const user = await User.findOne({
@@ -47,6 +46,24 @@ class UserService {
         type: "facebook"
       });
       return user;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  static async findUserById(id) {
+    try {
+      const user = await User.findById(id);
+      return user;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  static async getAllUsers() {
+    try {
+      const users = await User.find({ role: "user", status: true });
+      return users;
     } catch (error) {
       return null;
     }
