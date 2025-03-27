@@ -40,26 +40,6 @@ const deleteOldHoroscopes = async (req, res, next) => {
   }
 }
 
-const generateDailyHoroscope = async (req, res, next) => {
-  try {
-    const users = await UserService.getAllUsers();
-
-    // Lấy ngày hôm nay tại Việt Nam và chuyển thành chuỗi YYYY-MM-DD
-    const today = moment().tz("Asia/Ho_Chi_Minh").format("YYYY-MM-DD");
-
-    console.log(`Ngày hôm nay theo VN: ${today}`);
-
-    for (const user of users) {
-      const { _id, birthDate, gender } = user;
-      await HoroscopeService.getHoroscope(_id, birthDate, gender, "vi", today);
-      console.log(`✅ Đã tạo horoscope cho user ${_id} ngày ${today}`);
-    }
-  } catch (error) {
-    console.error("❌ Lỗi khi tạo horoscope:", error);
-    next({ status: 500, message: error.message });
-  }
-};
-
 const getUserHoroscopes = async (req, res, next) => {
   try {
     const { language } = req.query;
@@ -69,7 +49,10 @@ const getUserHoroscopes = async (req, res, next) => {
       return next({ status: 400, message: "Language must be 'en' or 'vi'" });
     }
 
-    const horoscopes = await HoroscopeService.getUserHoroscopes(userId, language);
+    const user = await UserService.findUserById(userId);
+    if (!user) return next({ status: 404, message: "User not found" });
+
+    const horoscopes = await HoroscopeService.getUserHoroscopes(userId, user.birthDate, user.gender, language);
 
     return res.status(200).json({
       code: 200,
@@ -85,6 +68,5 @@ const getUserHoroscopes = async (req, res, next) => {
 module.exports = { 
   getDailyHoroscope,
   deleteOldHoroscopes,
-  generateDailyHoroscope,
   getUserHoroscopes
 };

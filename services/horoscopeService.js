@@ -48,19 +48,27 @@ class HoroscopeService {
     console.log(`✅Đã xóa ${deleteResult.deletedCount} horoscope cũ hơn ${formattedOldDate}`);
   }
 
-  static async getUserHoroscopes(userId, language = "vi") {
+  static async getUserHoroscopes(userId, birthDate, gender, language = "vi") {
     try {
+      const today = moment().tz("Asia/Ho_Chi_Minh").startOf("day").format("YYYY-MM-DD");
       const threeDaysAgo = moment().tz("Asia/Ho_Chi_Minh").startOf("day").subtract(3, "days").format("YYYY-MM-DD");
-      const formattedOldDate = threeDaysAgo;
 
-      // Tìm tất cả horoscope trong vòng 3 ngày
-      const horoscopes = await HoroscopeModel.find({
+      // Kiểm tra xem đã có horoscope của ngày hôm nay chưa
+      let todayHoroscope = await HoroscopeModel.findOne({ userId, date: today });
+
+      // Nếu chưa có, tạo horoscope mới cho ngày hôm nay
+      if (!todayHoroscope) {
+        console.log(`🔍 Không có horoscope của hôm nay (${today}), tạo mới...`);
+
+        const newHoroscope = await GeminiService.generateHoroscope(birthDate, gender, today);
+        todayHoroscope = await HoroscopeModel.create({ userId, date: today, ...newHoroscope });
+      }
+
+      // Lấy danh sách horoscope trong 3 ngày gần nhất (bao gồm ngày hôm nay)
+      let horoscopes = await HoroscopeModel.find({
         userId,
-        date: { $gte: formattedOldDate }
+        date: { $gte: threeDaysAgo }
       }).sort({ date: -1 });
-
-      // Nếu không có dữ liệu, trả về mảng rỗng
-      if (!horoscopes.length) return [];
 
       // Nếu là tiếng Việt, trả dữ liệu gốc
       if (language === "vi") {
