@@ -11,13 +11,13 @@ const swaggerDefinition = {
   },
   servers: [
     {
-      url: 'https://tarot-server-t979.onrender.com',
-      description: 'Production server',
-    },
-    {
       url: 'http://localhost:8000',
       description: 'Development server',
     },
+    {
+      url: 'https://tarot-server-t979.onrender.com',
+      description: 'Production server',
+    }
   ],
   components: {
     securitySchemes: {

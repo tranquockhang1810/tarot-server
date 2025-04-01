@@ -1,6 +1,8 @@
 const express = require("express");
-const { loginByOtp, register, loginFacebook } = require("../../controllers/user.controller");
+const { loginByOtp, register, loginFacebook, updateUser, getUser } = require("../../controllers/user.controller");
 const router = express.Router();
+const auth = require("../../middleware/auth");
+const upload = require("../../middleware/upload");
 
 /**
  * @swagger
@@ -99,5 +101,77 @@ router.post("/register", register);
  *         description: Server error
  */
 router.post("/login-by-facebook", loginFacebook);
+
+/**
+ * @swagger
+ * /api/v1/auth/update:
+ *   patch:
+ *     summary: Update user information
+ *     description: Updates the user's name, avatar, birth date, and gender. The avatar is uploaded as a file.
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - birthDate
+ *               - gender
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Full name of the user (minimum 3 characters)
+ *                 example: "John Doe"
+ *               avatar:
+ *                 type: file
+ *                 format: binary
+ *                 description: Profile picture upload (file format)
+ *               birthDate:
+ *                 type: string
+ *                 format: date
+ *                 description: User's birth date (must be in the past)
+ *                 example: "1995-06-15"
+ *               gender:
+ *                 type: string
+ *                 enum: [male, female]
+ *                 description: User's gender
+ *                 example: "male"
+ *     responses:
+ *       200:
+ *         description: User information updated successfully
+ *       400:
+ *         description: Invalid input data
+ *       401:
+ *         description: User not authenticated
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
+router.patch("/update", auth(), upload.single("avatar"), updateUser);
+
+/**
+ * @swagger
+ * /api/v1/auth/user:
+ *   get:
+ *     summary: Get user information
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved user information
+ *       401:
+ *         description: User not authenticated
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
+router.get("/user", auth(), getUser);
 
 module.exports = router;

@@ -3,7 +3,9 @@ const { convertToInternational } = require("../utils/PhoneConvert");
 const jwtGenerate = require("../utils/JwtGenerate");
 const admin = require("../config/firebase");
 const UserService = require("../services/userService");
+const GeminiService = require("../services/geminiService");
 const axios = require("axios");
+const UploadService = require("../services/uploadService");
 
 const FACEBOOK_APP_ID = process.env.FACEBOOK_APP_ID;
 const FACEBOOK_APP_SECRET = process.env.FACEBOOK_APP_SECRET;
@@ -77,11 +79,15 @@ const register = async (req, res, next) => {
       let existUser = await UserService.findUserByPhone(phone);
       if (existUser) return next({ status: 400, message: "Phone number already exists" });
     }
-    
+
     if (type === "facebook") {
       let existUser = await UserService.findUserByFacebookId(id);
       if (existUser) return next({ status: 400, message: "Facebook id already exists" });
     }
+
+    const zodiac = await GeminiService.getZodiac(birthDate);
+
+    if (!zodiac) return next({ status: 400, message: "Birth date is not valid" });
 
     const user = await UserService.createUser("user", {
       name,
@@ -90,6 +96,7 @@ const register = async (req, res, next) => {
       gender,
       avatar,
       type,
+      zodiac
     });
     user.id = type === "facebook" ? id : user._id;
     await user.save();
@@ -116,7 +123,7 @@ const loginFacebook = async (req, res, next) => {
   try {
     // Xác thực token với Facebook
     const fbData = await verifyFacebookToken(accessToken);
-    
+
     if (!fbData.data.is_valid || fbData.data.app_id !== FACEBOOK_APP_ID) {
       return next({ status: 401, message: "Invalid Facebook token" });
     }
@@ -130,7 +137,7 @@ const loginFacebook = async (req, res, next) => {
         code: 200,
         message: "User needs to register first",
         data: {
-          registerInfo: { 
+          registerInfo: {
             name: fbUser.data.name,
             id: fbUser.data.id
           }
@@ -155,8 +162,74 @@ const loginFacebook = async (req, res, next) => {
   }
 };
 
+const updateUser = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const role = req.user.role;
+    const { name, birthDate, gender } = req.body;
+    let avatarPath = "";
+
+    // Kiểm tra dữ liệu đầu vào
+    if (!name || validateMinLength(name, 3) === false) return next({ status: 400, message: "Name should be at least 3 characters" });
+    if (!birthDate || !validateBirthDate(new Date(birthDate))) return next({ status: 400, message: "Birth date should be in the past." });
+    if (!["male", "female"].includes(gender)) return next({ status: 400, message: "Gender should be 'male' or 'female'" });
+
+    // Kiểm tra user có tồn tại không
+    const user = await UserService.findUserById(userId);
+    if (!user) return next({ status: 404, message: "User not found" });
+
+    // Xử lý avatar nếu có file tải lên
+    if (req.file) {
+      avatarPath = await UploadService.uploadToCloudinary(req.file.buffer);
+    }
+
+    // Lấy cung hoàng đạo từ ngày sinh
+    const zodiac = await GeminiService.getZodiac(birthDate);
+    if (!zodiac) return next({ status: 400, message: "Birth date is not valid" });
+
+    // Cập nhật user trong DB
+    const updatedUser = await UserService.updateUser(userId, role, {
+      name,
+      avatar: avatarPath || user.avatar,
+      birthDate,
+      gender,
+      zodiac
+    });
+
+    return res.status(200).json({
+      code: 200,
+      message: "Update user successful",
+      data: {
+        user: { ...updatedUser._doc, __v: undefined },
+      },
+    });
+
+  } catch (error) {
+    console.error("❌ Error updating user:", error);
+    next({ status: 500, message: error?.message });
+  }
+};
+
+const getUser = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const user = await UserService.findUserById(userId);
+    if (!user) return next({ status: 404, message: "User not found" });
+    return res.status(200).json({
+      code: 200,
+      message: "Get user successful",
+      data: { ...user._doc, __v: undefined }
+    });
+  } catch (error) {
+    console.error("❌ Error getting user:", error);
+    next({ status: 500, message: error?.message });
+  }
+};
+
 module.exports = {
   loginByOtp,
   register,
-  loginFacebook
+  loginFacebook,
+  updateUser,
+  getUser
 }

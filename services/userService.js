@@ -68,6 +68,25 @@ class UserService {
       return null;
     }
   }
+
+  static async updateUser(id, role, data) {
+    try {
+      let user;
+      switch (role) {
+        case "user":
+          user = appUserFactory.updateUser(id, data);
+          break;
+        case "admin":
+          user = adminUserFactory.updateUser(id, data);
+          break;
+        default:
+          throw new Error("Invalid role");
+      }
+      return user;
+    } catch (error) {
+      return null;
+    }
+  }
 }
 
 module.exports = UserService;

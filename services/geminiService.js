@@ -121,6 +121,21 @@ class GeminiService {
       throw new Error("Không thể dịch nội dung.");
     }
   }
+
+  static async getZodiac(birthDate) {
+    const prompt = `
+      Hãy trả về cung hoàng đạo của người có ngày sinh ${birthDate}.
+      Trả lời dưới dạng chuỗi, chỉ 1 chữ duy nhất theo format: tên quốc tế,viết thường, ví dụ: libra
+    `;
+
+    try {
+      const result = await model.generateContent(prompt);
+      return result.response.text().trim();
+    } catch (error) {
+      console.error("❌ Lỗi khi gọi Gemini API:", error);
+      throw new Error("Không thể tạo horoscope.");
+    }
+  }
 }
 
 module.exports = GeminiService;

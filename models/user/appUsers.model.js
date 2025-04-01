@@ -28,6 +28,10 @@ const appUserSchema = new mongoose.Schema({
     type: Number,
     required: true,
     default: 0
+  },
+  zodiac: {
+    type: String,
+    required: true
   }
 });
 
