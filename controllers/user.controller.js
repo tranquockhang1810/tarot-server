@@ -200,7 +200,7 @@ const updateUser = async (req, res, next) => {
       code: 200,
       message: "Update user successful",
       data: {
-        user: { ...updatedUser._doc, __v: undefined },
+        ...updatedUser._doc, __v: undefined
       },
     });
 
