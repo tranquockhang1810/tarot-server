@@ -16,17 +16,6 @@ require("./dbs/mongo.db.js");
 const app = express();
 const server = http.createServer(app); // 🔥 Dùng http để tạo server
 
-// Tạo thư mục nếu chưa có
-const ensureDirectoryExists = (dir) => {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-    console.log(`📂 Created folder: ${dir}`);
-  }
-};
-
-// Đảm bảo thư mục `uploads/` tồn tại
-ensureDirectoryExists(path.join(__dirname, "uploads"));
-
 // Tích hợp Swagger
 swagger(app);
 
