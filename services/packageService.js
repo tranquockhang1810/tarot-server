@@ -34,6 +34,16 @@ class PackageService {
       return null;
     }
   }
+
+  static async checkPackageExist(packageId) {
+    try {
+      const existPackage = await Package.findById(packageId);
+      return existPackage;
+    } catch (error) {
+      console.error("❌ Error getting package from DB:", error);
+      return null;
+    }
+  }
 }
 
 module.exports = PackageService

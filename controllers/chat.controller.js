@@ -1,7 +1,9 @@
 const ChatService = require("../services/chatService");
 const TopicService = require("../services/topicService");
 const MessageService = require("../services/messageService");
-const GeminiService = require("../services/geminiService")
+const GeminiService = require("../services/geminiService");
+const UserService = require("../services/userService");
+const BillService = require("../services/billService");
 
 const createChat = async (req, res, next) => {
   try {
@@ -18,14 +20,29 @@ const createChat = async (req, res, next) => {
 
     //Check with AI
     const isValidQuestion = await GeminiService.checkTopicRelevance(existTopic.name, question)
-    if (!isValidQuestion) return next({ status: 400, message: "Question is not suitable with the selected topic"})
- 
-    const chat = await ChatService.createChat({ 
-      user, 
-      topic, 
+    if (!isValidQuestion) return next({ status: 400, message: "Question is not suitable with the selected topic" })
+
+    //Check user point
+    const existUser = await UserService.findUserById(user);
+    if (!existUser) return next({ status: 400, message: "User not found" });
+    if (existUser.point < existTopic.point) return next({ status: 400, message: "Not enough points" });
+
+    const chat = await ChatService.createChat({
+      user,
+      topic,
       question,
-      cards: [] 
+      cards: []
     });
+
+    await UserService.updateUser(user, existUser.role, { point: existUser.point - existTopic.price });
+    await BillService.createBill({
+      user: existUser._id,
+      type: "point",
+      point: existTopic.price,
+      action: false,
+      topic: existTopic._id
+    })
+
     return res.status(200).json({
       code: 200,
       message: "Chat created successfully",
@@ -35,6 +52,7 @@ const createChat = async (req, res, next) => {
       }
     });
   } catch (error) {
+    console.error("❌ Error creating chat:", error);
     next({ status: 500, message: error?.message });
   }
 }

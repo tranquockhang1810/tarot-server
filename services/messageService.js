@@ -68,7 +68,7 @@ class MessageService {
       else {
         aiResponse = await GeminiService.getFollowUpResponse(chatHistory?.data, userMessage);
       }
-      return this.createMessage(chatID, null, "ai", aiResponse);
+      return this.createMessage(chatID, null, "ai", aiResponse, false);
     } catch (error) {
       console.error("❌ Error getting AI response:", error);
       return null;
