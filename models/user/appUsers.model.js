@@ -32,7 +32,11 @@ const appUserSchema = new mongoose.Schema({
   zodiac: {
     type: String,
     required: true
-  }
+  },
+  fcmToken: {
+    type: String,
+    default: ""
+  },
 });
 
 module.exports = User.discriminator('user', appUserSchema);

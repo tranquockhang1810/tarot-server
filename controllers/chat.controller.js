@@ -210,11 +210,21 @@ const updateCardsToChat = async (req, res, next) => {
   }
 }
 
+const checkUsersChatValid = async () => {
+  try {
+    console.log("🔄 Running check for user chat validity...");
+    await ChatService.checkUsersChatValid();
+  } catch (error) {
+    console.error("❌ Error checking user chat validity:", error);
+  }
+}
+
 module.exports = {
   createChat,
   getChats,
   getChat,
   updateOldChats,
   deleteChat,
-  updateCardsToChat
+  updateCardsToChat,
+  checkUsersChatValid,
 };

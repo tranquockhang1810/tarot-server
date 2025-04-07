@@ -8,5 +8,6 @@ router.use("/api/v1/card", require("./card/index"));
 router.use("/api/v1/horoscope", require("./horoscope/index"));
 router.use("/api/v1/package", require("./package/index"));
 router.use("/api/v1/bill", require("./bill/index"));
+router.use("/api/v1/notification", require("./notification/index"));
 
 module.exports = router;

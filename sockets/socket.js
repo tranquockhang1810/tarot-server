@@ -1,10 +1,11 @@
 const socketIo = require("socket.io");
-const { 
-  handleSendMessage, 
-  registerUser, 
+const {
+  handleSendMessage,
+  registerUser,
   removeUserSocket,
-  updateMessagesStatus 
+  updateMessagesStatus
 } = require("../controllers/mesage.controller");
+const { checkUnreadNotification, seenNotification } = require("../controllers/notification.controller");
 
 let io;
 const userSockets = {}; // Lưu socket ID của user
@@ -21,8 +22,9 @@ const initSocket = (server) => {
     console.log("🔥 Client connected:", socket.id);
 
     // ✅ Đăng ký user khi kết nối
-    socket.on("registerUser", (userID) => {
-      registerUser(userID, socket.id, userSockets);
+    socket.on("registerUser", async (data) => {
+      const { userId, fcmToken } = data;
+      await registerUser(userId, socket.id, userSockets, fcmToken);
     });
 
     // ✅ Xử lý tin nhắn khi user gửi
@@ -39,6 +41,20 @@ const initSocket = (server) => {
     socket.on("disconnect", () => {
       removeUserSocket(socket.id, userSockets);
     });
+
+    // ✅ Khi user xem thông báo
+    socket.on("seenNotification", async ({ userId, id }) => {
+      console.log("User seen notification:", userId, id);
+      await seenNotification({ userId, id });
+      socket.emit("seenNotificationDone");
+    })
+
+    socket.on("checkUnreadNotification", async ({ userId }) => {
+      console.log("Checking unread notifications for user:", userId);
+      
+      const unreadNotification = await checkUnreadNotification(userId);
+      socket.emit("unreadNotification", unreadNotification);
+    })
   });
 };
 

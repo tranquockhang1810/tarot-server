@@ -1,6 +1,5 @@
 const UserService = require("../services/userService");
 const HoroscopeService = require("../services/horoscopeService");
-const moment = require("moment-timezone");
 
 const getDailyHoroscope = async (req, res, next) => {
   try {
@@ -65,8 +64,17 @@ const getUserHoroscopes = async (req, res, next) => {
   }
 }
 
+const metionUsersCheckHoroscope = async () => {
+  try {
+    await HoroscopeService.metionUsersCheckHoroscope();
+  } catch (error) {
+    console.error("❌ Lỗi khi kiểm tra horoscope:", error);
+  }
+}
+
 module.exports = { 
   getDailyHoroscope,
   deleteOldHoroscopes,
-  getUserHoroscopes
+  getUserHoroscopes,
+  metionUsersCheckHoroscope
 };

@@ -2,6 +2,7 @@ const BillService = require('../services/billService');
 const MomoService = require('../services/momoService');
 const UserService = require('../services/userService');
 const PackageService = require('../services/packageService');
+const NotificationService = require('../services/notificationService');
 
 exports.createBill = async (req, res) => {
   try {
@@ -53,6 +54,11 @@ exports.paymentSuccess = async (req, res, next) => {
         action: true
       })
       await UserService.updateUser(bill.user._id, bill.user.role, { point: bill.user.point + bill.package.point });
+      await NotificationService.createNotification({
+        user: bill.user._id,
+        title: "Thanh toán thành công",
+        description: `Bạn đã thanh toán thành công gói ${bill.package.point}.`,
+      })
 
       return res.status(200).json({
         code: 200,

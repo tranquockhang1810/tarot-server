@@ -1,6 +1,7 @@
 const Chat = require("../models/chat/chat.model");
 const mongoose = require("mongoose");
 const moment = require("moment-timezone");
+const NotificationService = require("./notificationService");
 
 class ChatService {
   static async findChatByID(id) {
@@ -162,6 +163,53 @@ class ChatService {
     } catch (error) {
       console.error("Error updating cards:", error);
       return null;
+    }
+  }
+
+  static async checkUsersChatValid() {
+    try {
+      const now = moment().tz("Asia/Ho_Chi_Minh").startOf("day");
+      const twoDaysAgo = now.clone().subtract(2, "days").format("YYYY-MM-DD");
+      const oneDayAgo = now.clone().subtract(1, "days").format("YYYY-MM-DD");
+
+      // Tìm các đoạn chat tạo vào đúng 2 ngày trước (tức chỉ còn 1 ngày nữa là hết hạn)
+      const result = await Chat.aggregate([
+        {
+          $match: {
+            status: true,
+            createdAt: {
+              $gte: new Date(`${twoDaysAgo}T00:00:00.000Z`),
+              $lt: new Date(`${oneDayAgo}T00:00:00.000Z`),
+            }
+          }
+        },
+        {
+          $group: {
+            _id: "$user",
+            count: { $sum: 1 }
+          }
+        }
+      ]);
+
+      // Chuyển thành Map<userId, count>
+      const userChatMap = new Map();
+      result.forEach(item => {
+        userChatMap.set(item._id.toString(), item.count);
+      });
+
+      userChatMap.forEach(async (value, key) => {
+        await NotificationService.createNotification({
+          user: key,
+          title: "Đoạn chat sắp hết hạn",
+          description: `Bạn có ${value} đoạn chat sẽ hết hạn trong 24h tới`,
+        });
+      });
+
+      return userChatMap;
+
+    } catch (error) {
+      console.error("❌ Error checking chat validity:", error);
+      return new Map();
     }
   }
 }
