@@ -53,3 +53,20 @@ exports.checkUnreadNotification = async (userId) => {
     throw error;
   }
 }
+
+exports.testNotification = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    await NotificationService.createNotification({
+      user: userId,
+      title: "Thông báo test",
+      description: `Đây là thông báo test`,
+    })
+    res.status(200).json({
+      code: 200,
+      message: 'Notifications sent successfully',
+    })
+  } catch (error) {
+    next(error);
+  }
+}

@@ -57,7 +57,7 @@ exports.paymentSuccess = async (req, res, next) => {
       await NotificationService.createNotification({
         user: bill.user._id,
         title: "Thanh toán thành công",
-        description: `Bạn đã thanh toán thành công gói ${bill.package.point}.`,
+        description: `Bạn đã thanh toán thành công gói ${bill.package.point} điểm.`,
       })
 
       return res.status(200).json({
