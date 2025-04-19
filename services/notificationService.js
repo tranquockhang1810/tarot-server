@@ -5,6 +5,21 @@ class NotificationService {
   static async createNotification(data) {
     try {
       const created = await (await Notification.create(data)).populate('user', 'fcmToken');
+      const { getIO } = require('../sockets/socket');
+      const { io, userSockets } = getIO();
+
+      const userId = created.user._id.toString();
+      const socketId = userSockets[userId];
+
+      // Gửi socket signal cho user (nếu đang online)
+      if (socketId) {
+        io.to(socketId).emit("seenNotificationDone", {
+          _id: created._id,
+          title: created.title,
+          description: created.description,
+          createdAt: created.createdAt,
+        });
+      }
 
       // Gửi Firebase notification nếu có FCM token
       if (created.user.fcmToken && created.title && created.description) {
@@ -13,7 +28,7 @@ class NotificationService {
           title: created.title,
           body: created.description
         });
-        
+
         await this.sendFirebaseNotification({
           token: created.user.fcmToken,
           title: created.title,

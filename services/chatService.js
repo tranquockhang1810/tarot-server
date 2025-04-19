@@ -54,7 +54,7 @@ class ChatService {
           },
         },
         { $project: { messages: 0 } },
-        { $sort: { "latestMessage.createdAt": -1, status: -1 } },
+        { $sort: { createdAt: -1, "latestMessage.createdAt": -1, status: -1 } },
         { $skip: skip },
         { $limit: limit },
         {

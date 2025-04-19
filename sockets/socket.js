@@ -50,6 +50,7 @@ const initSocket = (server) => {
     })
 
     socket.on("checkUnreadNotification", async ({ userId }) => {
+      if (!userId) return;
       console.log("Checking unread notifications for user:", userId);
       
       const unreadNotification = await checkUnreadNotification(userId);
@@ -58,4 +59,10 @@ const initSocket = (server) => {
   });
 };
 
-module.exports = { initSocket };
+const getIO = () => {
+  if (!io) throw new Error("Socket.io not initialized!");
+  if (!userSockets) throw new Error("User sockets not initialized!");
+  return { io, userSockets };
+};
+
+module.exports = { initSocket, getIO };

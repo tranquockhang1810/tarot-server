@@ -3,7 +3,7 @@ const UserService = require("../services/userService");
 
 const registerUser = async (userID, socketID, userSockets, fcmToken) => {
   userSockets[userID] = socketID;
-  await UserService.updateUser(userID, "user", { fcmToken });
+  fcmToken && await UserService.updateUser(userID, "user", { fcmToken });
   console.log(`✅ User ${userID} connected with socket ${socketID}`);
 };
 
