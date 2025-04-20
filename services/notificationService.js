@@ -1,5 +1,6 @@
 const Notification = require('../models/notification/notification.model');
 const admin = require('../config/firebase');
+const UserService = require('./userService');
 
 class NotificationService {
   static async createNotification(data) {
@@ -110,6 +111,29 @@ class NotificationService {
     } catch (error) {
       console.error('Error checking unread notifications:', error);
       return null;
+    }
+  }
+
+  static async sendNotificationToAllUser({ title, description }) {
+    try {
+
+      const users = await UserService.getAllUsers();
+
+      const createNotifications = users.map(user =>
+        this.createNotification({
+          user: user._id,
+          title,
+          description,
+        })
+      );
+
+      await Promise.all(createNotifications);
+
+      console.log(`✅ Sent notification to ${users.length} users.`);
+      return true;
+    } catch (error) {
+      console.error('❌ Error sending notification to all users:', error);
+      return false;
     }
   }
 
