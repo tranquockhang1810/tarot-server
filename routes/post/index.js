@@ -76,7 +76,7 @@ router.get("/list", auth(), getPosts);
  *       500:
  *         description: Internal server error
  */
-router.post("/create", auth(), upload.array("images"), createPost);
+router.post("/create", auth(["admin"]), upload.array("images"), createPost);
 
 /**
  * @swagger
@@ -106,7 +106,7 @@ router.post("/create", auth(), upload.array("images"), createPost);
  *       500:
  *         description: Internal server error
  */
-router.delete("/delete/:id", auth(), deletePost);
+router.delete("/delete/:id", auth(["admin"]), deletePost);
 
 /**
  * @swagger
@@ -157,6 +157,6 @@ router.delete("/delete/:id", auth(), deletePost);
  *       500:
  *         description: Internal server error
  */
-router.put("/update/:id", auth(), upload.array("images"), updatePost);
+router.put("/update/:id", auth(["admin"]), upload.array("images"), updatePost);
 
 module.exports = router;

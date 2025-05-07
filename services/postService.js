@@ -19,6 +19,7 @@ class PostService {
     const skip = (page - 1) * limit;
     const posts =  await Post.find()
       .sort({ createdAt: -1 })
+      .populate("admin", "name")
       .skip(skip)
       .limit(limit)
       .lean();

@@ -1,5 +1,5 @@
 const express = require("express");
-const { loginByOtp, register, loginFacebook, updateUser, getUser } = require("../../controllers/user.controller");
+const { loginByOtp, register, loginFacebook, updateUser, getUser, addNewAdmin, loginAdmin } = require("../../controllers/user.controller");
 const router = express.Router();
 const auth = require("../../middleware/auth");
 const upload = require("../../middleware/upload");
@@ -173,5 +173,75 @@ router.patch("/update", auth(), upload.single("avatar"), updateUser);
  *         description: Server error
  */
 router.get("/user", auth(), getUser);
+
+/**
+ * @swagger
+ * /api/v1/auth/admin-login:
+ *   post:
+ *     summary: Admin login
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 description: Admin email
+ *               password:
+ *                 type: string
+ *                 description: Admin password
+ *     responses:
+ *       200:
+ *         description: Admin login successful
+ *       400:
+ *         description: Invalid email or password
+ *       401:
+ *         description: Invalid email or password
+ *       500:
+ *         description: Server error
+ */
+router.post("/admin-login", loginAdmin);
+
+/**
+ * @swagger
+ * /api/v1/auth/add-admin:
+ *   post:
+ *    summary: Add new admin
+ *    tags: [Auth]
+ *    security:
+ *      - bearerAuth: []
+ *    requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            properties:
+ *              email:
+ *                type: string
+ *                description: Admin email
+ *              password:
+ *                type: string
+ *                description: Admin password
+ *              name:
+ *                type: string
+ *                description: Admin name
+ *              phone:
+ *                type: string
+ *                description: Admin phone number
+ *    responses:
+ *      201:
+ *        description: Admin created successfully
+ *      400:
+ *        description: Invalid input data
+ *      401:
+ *        description: User not authenticateds
+ *      500:
+ *        description: Server error
+ */
+router.post("/add-admin", auth(["admin"]), addNewAdmin);
 
 module.exports = router;

@@ -226,10 +226,56 @@ const getUser = async (req, res, next) => {
   }
 };
 
+const addNewAdmin = async (req, res, next) => {
+  try {
+    const { email, password, name, phone } = req.body;
+    if (!email || !password) return next({ status: 400, message: "Email and password are required" });
+    if (!name || validateMinLength(name, 3) === false) return next({ status: 400, message: "Name should be at least 3 characters" });
+    if (!phone || validateLength(phone, 10) === false) return next({ status: 400, message: "Phone should be exactly 10 characters" });
+    if (validateMinLength(password, 6) === false) return next({ status: 400, message: "Password should be at least 6 characters" });
+
+    const hashedPassword = await UserService.hashPassword(password);
+
+    const user = await UserService.createUser("admin", { email, password: hashedPassword, name, phone });
+    return res.status(201).json({
+      code: 201,
+      message: "Admin created successfully",
+      data: { ...user._doc, __v: undefined, password: undefined },
+    });
+  } catch (error) {
+    console.error("❌ Error creating admin:", error);
+    next({ status: 500, message: error?.message });
+  }
+};
+
+const loginAdmin = async (req, res, next) => {
+  const { email, password } = req.body;
+  if (!email || !password) return next({ status: 400, message: "Email and password are required" });
+
+  try {
+    const { user, accessToken } = await UserService.loginAdmin(email, password);
+    if (!user) return next({ status: 401, message: "Invalid email or password" });
+
+    return res.status(200).json({
+      code: 200,
+      message: "Login successful",
+      data: {
+        accessToken,
+        user: { ...user?._doc, __v: undefined, password: undefined },
+      },
+    });
+  } catch (error) {
+    console.error("❌ Error logging in admin:", error);
+    next({ status: 500, message: error?.message });
+  }
+}
+
 module.exports = {
   loginByOtp,
   register,
   loginFacebook,
   updateUser,
-  getUser
+  getUser,
+  addNewAdmin,
+  loginAdmin
 }
