@@ -112,3 +112,34 @@ exports.getBillList = async (req, res, next) => {
   }
 }
 
+exports.getAllBillList = async (req, res, next) => {
+  try {
+    const { status, page = 1, limit = 10, fromDate, toDate } = req.query;
+    if (isNaN(page) || page < 1) {
+      return next({ status: 400, message: "Page must be a positive number" });
+    }
+    if (isNaN(limit) || limit < 1) {
+      return next({ status: 400, message: "Limit must be a positive number" });
+    }
+    const data = await BillService.getAllBillList(status, parseInt(page, 10), parseInt(limit, 10), fromDate, toDate);
+    
+    if (!data) {
+      return next({ status: 404, message: "Bill list not found" });
+    }
+    return res.status(200).json({
+      code: 200,
+      message: "Bill list fetched successfully",
+      data: data.bills,
+      paging: {
+        total: data.total,
+        page: data.page,
+        limit: data.limit,
+        totalPages: data.totalPages
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+}
+

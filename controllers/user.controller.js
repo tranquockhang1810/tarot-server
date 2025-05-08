@@ -270,6 +270,48 @@ const loginAdmin = async (req, res, next) => {
   }
 }
 
+const getAdminUsers = async (req, res, next) => {
+  try {
+    const { page, limit, status, email } = req.query;
+    const data = await UserService.getAdminUsers(parseInt(page, 10), parseInt(limit, 10), status, email);
+    return res.status(200).json({
+      code: 200,
+      message: "Get users successful",
+      data: data.users,
+      paging: {
+        total: data.total,
+        page: data.page,
+        limit: data.limit,
+        totalPages: data.totalPages
+      }
+    });
+  } catch (error) {
+    console.error("❌ Error getting users:", error);
+    next({ status: 500, message: error?.message });
+  }
+};
+
+const activeAdmin = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const user = await UserService.findUserById(id);
+    if (!user) return next({ status: 404, message: "User not found" });
+    if (user.role !== "admin") return next({ status: 400, message: "User is not admin" });
+
+    user.status = !user.status;
+    await user.save();
+
+    return res.status(200).json({
+      code: 200,
+      message: "Update user successful",
+      data: { ...user._doc, __v: undefined }
+    });
+  } catch (error) {
+    console.error("❌ Error updating user:", error);
+    next({ status: 500, message: error?.message });
+  }
+};
+
 module.exports = {
   loginByOtp,
   register,
@@ -277,5 +319,7 @@ module.exports = {
   updateUser,
   getUser,
   addNewAdmin,
-  loginAdmin
+  loginAdmin,
+  getAdminUsers,
+  activeAdmin
 }

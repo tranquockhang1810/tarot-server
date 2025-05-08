@@ -3,7 +3,8 @@ const router = express.Router();
 const {
   createBill,
   paymentSuccess,
-  getBillList
+  getBillList,
+  getAllBillList
 } = require("../../controllers/bill.controller");
 const auth = require("../../middleware/auth");
 
@@ -110,5 +111,53 @@ router.post("/success", auth(), paymentSuccess);
  *         description: Internal server error
  */
 router.get("/list", auth(), getBillList);
+
+/**
+ * @swagger
+ * /api/v1/bill/all:
+ *   get:
+ *     summary: Get all bill list
+ *     description: Get all bill list
+ *     tags: [Bill]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: number
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: number
+ *         description: Number of items per page
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [true, false]
+ *         description: Filter by status
+ *       - in: query
+ *         name: fromDate
+ *         schema:
+ *           type: string
+ *         description: Start date for filtering bills (YYYY-MM-DD)
+ *       - in: query
+ *         name: toDate
+ *         schema:
+ *           type: string
+ *         description: End date for filtering bills (YYYY-MM-DD)
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved bills
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Unauthorized (missing or invalid token)
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/all", auth(["admin"]), getAllBillList);
 
 module.exports = router;

@@ -35,7 +35,45 @@ class BillService {
       const bills = await Bill.find(filter)
         .select('-__v')
         .populate('user', 'name point role')
-        .populate('topic', 'name image')
+        .populate('topic', 'name image code')
+        .populate('package', 'point price description')
+        .lean()
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 });
+
+      const totalBills = await Bill.countDocuments(filter);
+
+      return {
+        total: totalBills,
+        page,
+        limit,
+        totalPages: Math.ceil(totalBills / limit),
+        bills,
+      };
+    } catch (error) {
+      console.error("❌ Error fetching bills from DB:", error);
+      return null;
+    }
+  }
+
+  static async getAllBillList(status, page = 1, limit = 10, fromDate, toDate) {
+    try {
+      const filter = {};
+      filter.type = "package";
+      if (status) filter.status = status === "true" ? true : false;
+      if (fromDate && toDate) {
+        filter.createdAt = {
+          $gte: new Date(fromDate),
+          $lte: new Date(toDate),
+        };
+      }
+      const skip = (page - 1) * limit;
+
+      const bills = await Bill.find(filter)
+        .select('-__v')
+        .populate('user', 'name point role')
+        .populate('topic', 'name image code')
         .populate('package', 'point price description')
         .lean()
         .skip(skip)

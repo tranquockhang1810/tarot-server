@@ -1,5 +1,5 @@
 const express = require("express");
-const { loginByOtp, register, loginFacebook, updateUser, getUser, addNewAdmin, loginAdmin } = require("../../controllers/user.controller");
+const { loginByOtp, register, loginFacebook, updateUser, getUser, addNewAdmin, loginAdmin, getAdminUsers, activeAdmin } = require("../../controllers/user.controller");
 const router = express.Router();
 const auth = require("../../middleware/auth");
 const upload = require("../../middleware/upload");
@@ -243,5 +243,74 @@ router.post("/admin-login", loginAdmin);
  *        description: Server error
  */
 router.post("/add-admin", auth(["admin"]), addNewAdmin);
+
+/**
+ * @swagger
+ * /api/v1/auth/list-admin:
+ *   get:
+ *     summary: Get all admins
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: number
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: number
+ *         description: Number of items per page
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [true, false]
+ *         description: Filter by status
+ *       - in: query
+ *         name: email
+ *         schema:
+ *           type: string
+ *         description: Filter by email
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved bills
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Unauthorized (missing or invalid token)
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/list-admin", auth(["admin"]), getAdminUsers);
+
+/**
+ * @swagger
+ * /api/v1/auth/active-admin/{id}:
+ *   put:
+ *     summary: Activate or deactivate an admin
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: Admin ID to activate or deactivate
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Admin status updated successfully
+ *       400:
+ *         description: Invalid input data
+ *       401:
+ *         description: User not authenticateds
+ *       404:
+ *         description: Admin not found
+ */
+router.put("/active-admin/:id", auth(["admin"]), activeAdmin);
 
 module.exports = router;

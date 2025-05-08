@@ -120,6 +120,36 @@ class UserService {
     const salt = await bcrypt.genSalt(10);
     return await bcrypt.hash(password, salt);
   }
+
+  static async getAdminUsers(page = 1, limit = 10, status, email) {
+    try {
+      const filter = {};
+      filter.role = "admin";
+      if (status) filter.status = status === "true" ? true : false;
+      if (email) filter.email = email;
+      const skip = (page - 1) * limit;
+
+      const users = await User.find(filter)
+        .select("-__v -password")
+        .lean()
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 });
+
+      const totalUsers = await User.countDocuments(filter);
+
+      return {
+        total: totalUsers,
+        page,
+        limit,
+        totalPages: Math.ceil(totalUsers / limit),
+        users,
+      };
+    } catch (error) {
+      console.error("❌ Error fetching users from DB:", error);
+      return null;
+    }
+  }
 }
 
 module.exports = UserService;
