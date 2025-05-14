@@ -12,10 +12,6 @@ const userSchema = new Schema({
   },
   phone: {
     type: String,
-    validate: {
-      validator: (phone) => validateMinLength(phone, 10) && phone.length === 10,
-      message: `Phone should be exactly 10 characters.`
-    },
   },
   status: {
     type: Boolean,
