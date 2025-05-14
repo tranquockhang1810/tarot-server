@@ -98,7 +98,7 @@ const register = async (req, res, next) => {
       type,
       zodiac
     });
-    user.id = type === "facebook" ? id : user._id;
+    user.id = type === "facebook" ? id : user._doc._id;
     await user.save();
 
     const accessToken = jwtGenerate(user);

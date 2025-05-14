@@ -10,5 +10,6 @@ router.use("/api/v1/package", require("./package/index"));
 router.use("/api/v1/bill", require("./bill/index"));
 router.use("/api/v1/notification", require("./notification/index"));
 router.use("/api/v1/post", require("./post/index"));
+router.use("/api/v1/dashboard", require("./dashboard/index"));
 
 module.exports = router;
