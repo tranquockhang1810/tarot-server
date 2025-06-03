@@ -96,9 +96,9 @@ const register = async (req, res, next) => {
       gender,
       avatar,
       type,
-      zodiac
+      zodiac,
+      point: 120
     });
-    console.log("user", user);
     user.id = type === "facebook" ? id : user._id;
     await user.save();
 

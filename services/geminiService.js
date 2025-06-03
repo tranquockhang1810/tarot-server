@@ -25,44 +25,132 @@ class GeminiService {
     }
   }
 
-  static async interpretTarot(topic, question, cards) {
-    const cardDescriptions = cards.map(card => card).join("\n");
+  static async askFollowUpQuestions(topic, question, user) {
     const prompt = `
-      Người dùng có câu hỏi về chủ đề "${topic}": "${question}".
-      Họ đã bốc 3 lá bài Tarot:
-      ${cardDescriptions}
-      
-      Dựa vào ý nghĩa của các lá bài, hãy phân tích và đưa ra câu trả lời chi tiết.
-    `;
+Người dùng có câu hỏi về chủ đề "${topic}": "${question}".
+
+Hãy đóng vai Reader Tarot và đặt ra 3 câu hỏi phụ, ngắn gọn, nhằm hiểu rõ hơn về hoàn cảnh hoặc cảm xúc hiện tại của người dùng.
+
+Thông tin người dùng:
+- Tên: ${user.name}
+- Giới tính: ${user.gender}
+- Ngày sinh: ${user.birthDate}
+- Cung hoàng đạo: ${user.zodiac}
+
+Yêu cầu:
+- Tự xưng là "em", người dùng là "anh" hoặc "chị" tùy vào giới tính.
+- Nên có 1 phần chào hỏi và mong muốn hỏi thêm để hiểu rõ về người dùng hơn.
+- Mỗi câu nằm trên một dòng riêng biệt.
+- Không cần đánh số hoặc giải thích thêm.
+`;
 
     try {
       const result = await model.generateContent(prompt);
-      const response = result.response;
-      return response.text();
+      const raw = result.response.text().trim();
+      console.log("raw questions:", raw);
+      
+      const questions = raw
+        .split('\n')
+        .map(q => q.trim())
+        .filter(q => q.length > 0);
+
+      return questions;
     } catch (error) {
-      console.error("❌ Lỗi khi gọi Gemini API:", error);
-      return "Xin lỗi, tôi không thể xem bài Tarot lúc này.";
+      console.error("❌ Lỗi khi hỏi 3 câu hỏi:", error);
+      return [
+        "Bạn đang cảm thấy thế nào trong tình huống này?",
+        "Bạn mong muốn điều gì sẽ thay đổi?",
+        "Có điều gì khiến bạn đang lo lắng nhất không?"
+      ];
     }
   }
 
-  static async getFollowUpResponse(chatHistory, newQuestion) {
+  static async validateSingleAnswer(topic, mainQuestion, followUpQuestion, userAnswer) {
     const prompt = `
-      Cuộc trò chuyện về chủ đề "${chatHistory.topic?.name}":
-      ${chatHistory?.messages.map(msg => `${msg.senderType === "user" ? "Người dùng" : "AI"}: ${msg.message}`).join("\n")}
-      Người dùng vừa nhắn: "${newQuestion}".
-      
-      Hãy kiểm tra xem câu tin nhắn này có liên quan không. 
-      Nếu có, hãy tiếp tục trả lời theo ngữ cảnh của cuộc trò chuyện, chỉ tập trung trả lời câu hỏi, không cần đưa ra kết luận câu hỏi có liên quan hay không.
-      Nếu không, hãy trả lời người dùng rằng "Xin lỗi, đoạn chat này chỉ trả lời các câu hỏi liên quan tới câu hỏi ban đầu: **"${chatHistory?.question}"** và chủ đề **"${chatHistory.topic?.name}"**".
-      Nếu tin nhắn liên quan về việc cảm ơn AI đã giúp đỡ, hãy trả lời người dùng với ý có thể hỏi thêm thông tin đã xem về tarot.
-    `;
+Chủ đề: ${topic}
+Câu hỏi chính: "${mainQuestion}"
+Câu hỏi phụ: "${followUpQuestion}"
+Người dùng trả lời: "${userAnswer}"
+
+Câu trả lời này có trả lời đúng và liên quan đến câu hỏi phụ không?
+Trả lời "yes" nếu hợp lệ hoặc người dùng không quá chắc chắn, "no" nếu không.
+`;
+
+    try {
+      const result = await model.generateContent(prompt);
+      const text = result.response.text().toLowerCase();
+      return text.includes('yes');
+    } catch (error) {
+      console.error("❌ validateSingleAnswer error:", error);
+      return false;
+    }
+  }
+
+  static async interpretTarot(topic, question, cards, questions, answers, user) {
+    const cardDescriptions = cards.join("\n");
+    const questionsInfo = questions.map((quest, i) => `Câu hỏi ${i + 1}: ${quest}`).join("\n");
+    const answersInfo = answers.map((ans, i) => `Câu trả lời ${i + 1}: ${ans}`).join("\n");
+
+    const prompt = `
+    Bạn là một Reader Tarot chuyên nghiệp.
+
+    Thông tin người dùng:
+    - Tên: ${user.name}
+    - Giới tính: ${user.gender}
+    - Ngày sinh: ${user.birthDate}
+    - Cung hoàng đạo: ${user.zodiac}
+
+    Người dùng có câu hỏi về chủ đề **"${topic}"**: "${question}".
+
+    Họ đã bốc 3 lá bài:
+    ${cardDescriptions}
+
+    Bạn đã hỏi người dùng để hiểu rõ hơn:
+    ${questionsInfo}
+
+    Họ đã trả lời như sau:
+    ${answersInfo}
+
+    → Dựa vào ý nghĩa của các lá bài và thông tin đã thu thập, hãy đưa ra một phân tích chi tiết với văn phong của một cuộc trò chuyện ấm áp,
+    luôn xưng hô với người dùng là người lớn tuổi hơn.  
+    Giải thích rõ ý nghĩa từng lá bài, liên hệ với cảm xúc và câu hỏi của người dùng.  
+    Kết thúc bằng một lời khuyên nhẹ nhàng, không phán xét.
+  `;
+
+    console.log("🔮 Đang phân tích bài Tarot với prompt:", prompt);
+
 
     try {
       const result = await model.generateContent(prompt);
       const response = result.response;
       return response.text().trim();
     } catch (error) {
-      console.error("❌ Lỗi khi lấy phản hồi tiếp theo từ Gemini:", error);
+      console.error("❌ Lỗi khi xem bài Tarot:", error);
+      return "Xin lỗi, tôi không thể xem bài Tarot lúc này.";
+    }
+  }
+
+  static async getFollowUpResponse(chatHistory, newQuestion) {
+    const prompt = `
+    Cuộc trò chuyện Tarot với chủ đề **"${chatHistory.topic?.name}"** và câu hỏi ban đầu là: "${chatHistory?.question}".
+
+    Lịch sử trò chuyện:
+    ${chatHistory?.messages.map(msg => `${msg.senderType === "user" ? "Người dùng" : "Reader"}: ${msg.message}`).join("\n")}
+
+    Người dùng hỏi thêm: "${newQuestion}"
+    - Hãy kiểm tra xem câu hỏi này có liên quan tới chủ đề và câu hỏi ban đầu hay không. Chỉ trả lời những câu hỏi có liên quan đến
+    Tarot như nội dung các lá bài như một Reader Tarot. Không làm các việc khác như giải thích, lên kế hoạc hay đưa ra lời khuyên không liên quan.
+    - Nếu không liên quan, hãy từ chối lịch sự và giải thích rằng bạn chỉ có thể trả lời các câu hỏi liên quan đến Tarot, trả lời ngắn gọn.
+    - Nếu người dùng chỉ cảm ơn hoặc gửi lời chào, hãy đáp lại lịch sự và mời họ hỏi thêm nếu cần.
+    - Tự xưng là "em", người dùng là "anh" hoặc "chị" tùy vào giới tính.
+  `;
+
+    try {
+      const result = await model.generateContent(prompt);
+      const response = result.response;
+      return response.text().trim();
+    } catch (error) {
+      console.error("❌ Lỗi phản hồi tiếp theo từ Gemini:", error);
       return "Xin lỗi, tôi không thể trả lời lúc này.";
     }
   }

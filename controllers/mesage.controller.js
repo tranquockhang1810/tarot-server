@@ -44,7 +44,7 @@ const handleSendMessage = async (io, socket, userID, chatID, message) => {
     };
     io.to(socket.id).emit("newMessage", loadingMessage);
 
-    const aiMessage = await MessageService.getAIResponseAndSave(chatID, message);
+    const aiMessage = await MessageService.getAIResponseAndSave(chatID, message, userID);
 
     io.to(socket.id).emit("replaceMessage", {
       oldId: "loading",

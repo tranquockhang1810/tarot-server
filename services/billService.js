@@ -59,22 +59,27 @@ class BillService {
 
   static async getAllBillList(status, page = 1, limit = 10, fromDate, toDate) {
     try {
-      const filter = {};
-      filter.type = "package";
-      if (status) filter.status = status === "true" ? true : false;
+      const filter = { type: "package" };
+
+      if (status) filter.status = status === "true";
+
       if (fromDate && toDate) {
-        filter.createdAt = {
-          $gte: new Date(fromDate),
-          $lte: new Date(toDate),
-        };
+        const start = new Date(fromDate);
+        start.setHours(0, 0, 0, 0);
+
+        const end = new Date(toDate);
+        end.setHours(23, 59, 59, 999);
+
+        filter.createdAt = { $gte: start, $lte: end };
       }
+
       const skip = (page - 1) * limit;
 
       const bills = await Bill.find(filter)
-        .select('-__v')
-        .populate('user', 'name point role')
-        .populate('topic', 'name image code')
-        .populate('package', 'point price description')
+        .select("-__v")
+        .populate("user", "name point role")
+        .populate("topic", "name image code")
+        .populate("package", "point price description")
         .lean()
         .skip(skip)
         .limit(limit)

@@ -25,7 +25,7 @@ const createChat = async (req, res, next) => {
     //Check user point
     const existUser = await UserService.findUserById(user);
     if (!existUser) return next({ status: 400, message: "User not found" });
-    if (existUser.point < existTopic.point) return next({ status: 400, message: "Not enough points" });
+    if (existUser.point < existTopic.price) return next({ status: 400, message: "Not enough points" });
 
     const chat = await ChatService.createChat({
       user,

@@ -1,6 +1,7 @@
 const Chat = require("../models/chat/chat.model");
 const Message = require("../models/message/message.model");
 const GeminiService = require("../services/geminiService");
+const UserService = require("./userService");
 
 class MessageService {
   static async getMessages(chatID, page = 1, limit = 10) {
@@ -59,18 +60,88 @@ class MessageService {
     }
   }
 
-  static async getAIResponseAndSave(chatID, userMessage) {
+  static async getAIResponseAndSave(chatID, userMessage, userID) {
     try {
-      const chatHistory = await this.getMessages(chatID);
-      let aiResponse = "";
-      if (chatHistory?.data.messages.length === 1) 
-        aiResponse = await GeminiService.interpretTarot(chatHistory?.data.topic?.name, userMessage, chatHistory?.data.cards);
-      else {
-        aiResponse = await GeminiService.getFollowUpResponse(chatHistory?.data, userMessage);
+      const chat = await Chat.findById(chatID).populate('topic');
+      const user = await UserService.findUserById(userID);
+      // 1. Giai đoạn mới tạo
+      if (chat.stage === 'initial') {
+        const questions = await GeminiService.askFollowUpQuestions(chat.topic.name, chat.question, user);
+        chat.followUpQuestions = questions.slice(1);
+        chat.followUpAnswers = [];
+        chat.currentFollowUpIndex = 0;
+        chat.stage = 'awaiting_answer';
+        await chat.save();
+        await this.createMessage(chatID, null, 'ai', questions[0], false);
+
+        const currentQuestion = chat.followUpQuestions[0];
+        await this.createMessage(chatID, null, 'ai', currentQuestion, false);
+        return currentQuestion;
       }
-      return this.createMessage(chatID, null, "ai", aiResponse, false);
+
+      // 2. Đang chờ user trả lời từng câu
+      if (chat.stage === 'awaiting_answer') {
+        const idx = chat.currentFollowUpIndex;
+        const currentQuestion = chat.followUpQuestions[idx];
+
+        // Validate câu trả lời
+        const isValid = await GeminiService.validateSingleAnswer(
+          chat.topic.name,
+          chat.question,
+          currentQuestion,
+          userMessage
+        );
+
+        if (!isValid) {
+          const retryMsg = `Cảm ơn bạn, vui lòng trả lời rõ hơn cho câu hỏi: "${currentQuestion}"`;
+          await this.createMessage(chatID, null, 'ai', retryMsg, false);
+          return retryMsg;
+        }
+
+        // Câu trả lời hợp lệ
+        chat.followUpAnswers.push(userMessage);
+        chat.currentFollowUpIndex += 1;
+
+        // Đã trả lời hết 3 câu
+        if (chat.currentFollowUpIndex >= chat.followUpQuestions.length) {
+          chat.stage = 'interpreted';
+          await chat.save();
+
+          if (!Array.isArray(chat.followUpAnswers)) {
+            chat.followUpAnswers = [];
+          }
+          
+          const aiResponse = await GeminiService.interpretTarot(
+            chat.topic.name,
+            chat.question,
+            chat.cards,
+            chat.followUpQuestions,
+            chat.followUpAnswers,
+            user
+          );
+
+          await this.createMessage(chatID, null, 'ai', aiResponse, false);
+          return aiResponse;
+        }
+
+        // Còn câu tiếp theo
+        const nextQuestion = chat.followUpQuestions[chat.currentFollowUpIndex];
+        await chat.save();
+        await this.createMessage(chatID, null, 'ai', nextQuestion, false);
+        return nextQuestion;
+      }
+
+      // 3. Đã interpret → user hỏi tiếp
+      if (chat.stage === 'interpreted') {
+        const chatHistory = await this.getMessages(chatID);
+        const aiResponse = await GeminiService.getFollowUpResponse(chatHistory.data, userMessage);
+        await this.createMessage(chatID, null, 'ai', aiResponse, false);
+        return aiResponse;
+      }
+
+      return null;
     } catch (error) {
-      console.error("❌ Error getting AI response:", error);
+      console.error('❌ Error in getAIResponseAndSave:', error);
       return null;
     }
   }

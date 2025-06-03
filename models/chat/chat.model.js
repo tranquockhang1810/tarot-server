@@ -22,6 +22,17 @@ const chatSchema = new Schema({
   status: {
     type: Boolean,
     default: true
+  },
+  followUpQuestions: [String],
+  followUpAnswers: [String],
+  stage: {
+    type: String,
+    enum: ['initial', 'awaiting_answer', 'interpreted'],
+    default: 'initial'
+  },
+  currentFollowUpIndex: {
+    type: Number,
+    default: 0
   }
 }, { timestamps: true });
 
